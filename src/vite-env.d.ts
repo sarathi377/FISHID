@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/client" />
 
 interface StorageAPI {
   get(key: string): Promise<{ value: string } | null>;

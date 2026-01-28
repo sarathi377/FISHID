@@ -7,13 +7,13 @@ The app now has better error handling that will guide you to fix issues:
 ### Error: "API key not configured"
 **Solution:** Create a `.env` file in the project root with:
 ```
-VITE_ANTHROPIC_API_KEY=sk-ant-api03-your-actual-key-here
+VITE_GOOGLE_API_KEY=AIzaSy...your-actual-key-here
 ```
 
 ### Error: "Invalid API key"
 **Solution:** 
-1. Get your API key from: https://console.anthropic.com/
-2. Make sure it starts with `sk-ant-api03-`
+1. Get your API key from: https://aistudio.google.com/
+2. Make sure it starts with `AIzaSy`
 3. Update the `.env` file
 4. Restart the dev server: `npm run dev`
 
@@ -34,7 +34,7 @@ VITE_ANTHROPIC_API_KEY=sk-ant-api03-your-actual-key-here
 2. **Create .env file if missing:**
    ```bash
    # Create file with your API key
-   echo "VITE_ANTHROPIC_API_KEY=sk-ant-api03-YOUR_KEY_HERE" > .env
+   echo "VITE_GOOGLE_API_KEY=AIzaSy_YOUR_KEY_HERE" > .env
    ```
 
 3. **Restart the server:**
@@ -57,8 +57,7 @@ VITE_ANTHROPIC_API_KEY=sk-ant-api03-your-actual-key-here
 
 ## 📝 Next Steps
 
-1. Get your API key from https://console.anthropic.com/
+1. Get your API key from https://aistudio.google.com/
 2. Add it to `.env` file
 3. Restart the server
 4. Try uploading a fish image again!
-

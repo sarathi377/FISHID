@@ -1,21 +1,21 @@
-# Anthropic API Setup Guide
+# Google Gemini API Setup Guide
 
-This app now uses **Anthropic's Claude API** for:
-- Fish image identification (using Claude 3.5 Sonnet with vision)
+This app now uses **Google's Gemini API** for:
+- Fish image identification (using Gemini 2.5 Flash with vision)
 - Finding nearby fishing shops
 - Chat assistance
 
 ## Setup Instructions
 
-1. **Get an Anthropic API Key:**
-   - Go to https://console.anthropic.com/
+1. **Get a Google AI API Key:**
+   - Go to https://aistudio.google.com/
    - Sign up or log in
-   - Navigate to API Keys section
-   - Create a new API key (format: `sk-ant-api03-...`)
+   - Click "Get API key"
+   - Create a new API key (format: `AIzaSy...`)
 
 2. **Create a `.env` file in the project root:**
    ```
-   VITE_ANTHROPIC_API_KEY=sk-ant-api03-your-actual-api-key-here
+   VITE_GOOGLE_API_KEY=AIzaSy...your-actual-api-key-here
    ```
 
 3. **Restart the development server:**
@@ -25,11 +25,8 @@ This app now uses **Anthropic's Claude API** for:
 
 ## API Configuration
 
-- **Model:** `claude-3-5-sonnet-20241022`
-- **Endpoint:** `https://api.anthropic.com/v1/messages`
-- **Headers:**
-  - `x-api-key`: Your API key
-  - `anthropic-version`: `2023-06-01`
+- **Model:** `gemini-2.5-flash`
+- **Library:** `@google/generative-ai`
 
 ## Features
 
@@ -42,4 +39,3 @@ This app now uses **Anthropic's Claude API** for:
 - The API key is stored in environment variables and never exposed in client-side code
 - All API calls include proper error handling
 - The app will show an error message if the API key is not configured
-
