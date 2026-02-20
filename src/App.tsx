@@ -2,100 +2,21 @@ import { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, Fish, Loader2, Info, X, RefreshCw, MapPin, Navigation, Store, Phone, Mail, Building2, MessageCircle, Send, Book, ChevronRight, Brain, ExternalLink } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import FishAnalysisDashboard from './components/FishAnalysisDashboard';
 
-// Type definitions
-type Language = 'en' | 'hi' | 'mr' | 'ta' | 'te' | 'bn' | 'ml';
-
-interface MultiLanguageText {
-  en: string;
-  hi: string;
-  mr: string;
-  ta: string;
-  te: string;
-  bn: string;
-  ml: string;
-}
-
-interface FishResult {
-  commonName?: string;
-  scientificName?: string;
-  features?: string[];
-  habitat?: string;
-  edibility?: string;
-  confidence?: number;
-  error?: string;
-}
-
-interface HistoryItem {
-  id: string;
-  timestamp: string;
-  image: string;
-  result: FishResult;
-}
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  picture: string;
-  provider: string;
-}
-
-interface UserLocation {
-  lat: number;
-  lng: number;
-}
-
-interface Shop {
-  name: string;
-  address: string;
-  distance: string;
-  type: string;
-  phone?: string;
-  description?: string;
-  lat?: number;
-  lng?: number;
-}
-
-interface OnlinePlatform {
-  name: string;
-  url: string;
-  category: string;
-  description: string;
-  logo: string;
-  specialties: string[];
-}
-
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-interface FishData {
-  id: number;
-  name: MultiLanguageText;
-  scientificName: string;
-  description: MultiLanguageText;
-  habitat: MultiLanguageText;
-  color: string;
-  category: 'Freshwater' | 'Saltwater' | 'Brackish';
-}
-
-interface Department {
-  name: string;
-  telephone: string;
-  fax: string;
-  email: string;
-}
-
-interface WeatherData {
-  windSpeed: number;
-  waveHeight: number;
-  temperature: number;
-  status: 'Safe' | 'Warning' | 'Danger' | 'Emergency';
-  analysis: string;
-  lastUpdated: string;
-}
+import {
+  Language,
+  FishResult,
+  HistoryItem,
+  User,
+  UserLocation,
+  Shop,
+  OnlinePlatform,
+  ChatMessage,
+  FishData,
+  Department,
+  WeatherData
+} from './types';
 
 export default function App() {
   const [image, setImage] = useState<string | null>(null);
@@ -143,13 +64,33 @@ export default function App() {
     }
   };
 
+  const getFreshnessGradeClass = (grade: string) => {
+    switch (grade) {
+      case 'Excellent': return 'bg-green-500/20 text-green-400 border-green-500/50';
+      case 'Good': return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50';
+      case 'Fair': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50';
+      case 'Poor': return 'bg-red-500/20 text-red-400 border-red-500/50';
+      default: return 'bg-slate-500/20 text-slate-400 border-slate-500/50';
+    }
+  };
+
+  const getQualityGradeClass = (grade: string) => {
+    switch (grade) {
+      case 'Premium': return 'bg-purple-500/20 text-purple-400 border-purple-500/50';
+      case 'Good': return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
+      case 'Average': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50';
+      case 'Below Average': return 'bg-orange-500/20 text-orange-400 border-orange-500/50';
+      default: return 'bg-slate-500/20 text-slate-400 border-slate-500/50';
+    }
+  };
+
   const analyzeWeatherWithGemini = async (metrics: any) => {
     try {
       const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || '';
       if (!apiKey) return "Normal sea conditions detected. Stay alert.";
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       const prompt = `Act as a marine safety expert. Analyze these current metrics:
 Wind Speed: ${metrics.windSpeed} km/h
@@ -391,19 +332,33 @@ Return ONLY the text.`;
       }
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       const base64Data = image.includes(',') ? image.split(',')[1] : image;
 
-      const prompt = `Analyze this fish image and identify the species. Provide your response ONLY as valid JSON with no additional text, using this exact structure:
+      const prompt = `Analyze this fish image and identify the species. Also assess the freshness and quality of the fish. Provide your response ONLY as valid JSON. Do not use markdown formatting. Use this exact structure:
 {
   "commonName": "name",
   "scientificName": "name",
   "features": ["feature1", "feature2", "feature3"],
   "habitat": "description",
   "edibility": "description",
-  "confidence": 85
+  "confidence": 85,
+  "freshness": {
+    "score": 85,
+    "grade": "Excellent",
+    "indicators": ["bright eyes", "firm flesh", "fresh smell"],
+    "assessment": "The fish appears very fresh based on visual indicators."
+  },
+  "quality": {
+    "score": 80,
+    "grade": "Good",
+    "factors": ["good size", "proper handling", "no visible damage"],
+    "assessment": "The fish shows good quality characteristics."
+  }
 }
+For freshness, analyze: eye clarity and brightness, skin/scales condition, gill color, flesh firmness (if visible), and overall appearance. Grade: Excellent (90-100), Good (70-89), Fair (50-69), Poor (0-49).
+For quality, analyze: size appropriateness, handling marks, damage, texture, and overall condition. Grade: Premium (90-100), Good (70-89), Average (50-69), Below Average (0-49).
 Be specific about identifying features like coloration, body shape, fin structure, and markings. If unsure, still provide your best identification with appropriate confidence level.`;
 
       const imagePart = {
@@ -415,26 +370,36 @@ Be specific about identifying features like coloration, body shape, fin structur
 
       const result = await model.generateContent([prompt, imagePart]);
       const response = await result.response;
-      const text = response.text();
+      let text = response.text();
+      console.log("Raw identification response:", text);
 
       if (text) {
+        // Clean markdown if present
+        text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
         try {
           const jsonMatch = text.match(/\{[\s\S]*\}/);
           const jsonString = jsonMatch ? jsonMatch[0] : text;
           const fishData = JSON.parse(jsonString);
+
           if (fishData.commonName || fishData.scientificName) {
             setResult(fishData);
 
-            // Save to history
-            const newHistoryItem: HistoryItem = {
-              id: Date.now().toString(),
-              timestamp: new Date().toISOString(),
-              image: image,
-              result: fishData
-            };
-            const updatedHistory = [newHistoryItem, ...scanHistory].slice(0, 10);
-            setScanHistory(updatedHistory);
-            await window.storage.set('scan_history', JSON.stringify(updatedHistory));
+            // Save to history (non-blocking)
+            try {
+              const newHistoryItem: HistoryItem = {
+                id: Date.now().toString(),
+                timestamp: new Date().toISOString(),
+                image: image,
+                result: fishData
+              };
+              const updatedHistory = [newHistoryItem, ...scanHistory].slice(0, 10);
+              setScanHistory(updatedHistory);
+              await window.storage.set('scan_history', JSON.stringify(updatedHistory));
+            } catch (storageError) {
+              console.error("Failed to save history:", storageError);
+              // Continue without saving history
+            }
           } else {
             throw new Error('Invalid response format');
           }
@@ -498,7 +463,7 @@ Be specific about identifying features like coloration, body shape, fin structur
       }
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       const prompt = `Find fishing net shops, marine supply stores, and fishing equipment stores near coordinates ${lat}, ${lng}. Search for boat net shops, fishing gear stores, and marine equipment suppliers in this area. Provide response as JSON array with this structure:
 [
@@ -810,7 +775,7 @@ Provide at least 5-8 results if possible. Return ONLY the JSON array.`;
 
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.5-flash",
         systemInstruction: `You are a helpful fishing assistant. Respond in ${languages[language].name}.`
       });
 
@@ -919,7 +884,7 @@ Provide at least 5-8 results if possible. Return ONLY the JSON array.`;
             </div>
 
             {/* Input Area */}
-            <div className="absolute bottom-28 left-0 w-full px-4 z-20">
+            <div className="absolute left-0 z-20 w-full px-4 bottom-28">
               <div className="max-w-3xl mx-auto">
                 <div className="flex items-center gap-2 p-2 pl-4 transition-all duration-300 border rounded-full shadow-2xl bg-slate-900/90 backdrop-blur-2xl border-white/10 shadow-black/50 focus-within:border-cyan-500/50 ring-1 ring-white/5">
                   <input
@@ -968,8 +933,8 @@ Provide at least 5-8 results if possible. Return ONLY the JSON array.`;
               {activeTab === 'identify' && (
                 <div className="p-6 glass-card rounded-3xl md:p-8 animate-fade-in">
                   <div className="mb-6 text-center">
-                    <h2 className="mb-2 text-2xl font-bold">Identify Catch</h2>
-                    <p className="text-sm text-slate-400">Upload a photo to detect species</p>
+                    <h2 className="mb-2 text-2xl font-bold">Scan Fish</h2>
+                    <p className="text-sm text-slate-400">Upload a photo to identify species, assess freshness & quality</p>
                   </div>
 
                   <label className="relative flex flex-col items-center justify-center w-full overflow-hidden transition-all border-2 border-dashed cursor-pointer h-72 border-white/20 rounded-2xl hover:border-cyan-400/50 hover:bg-white/5 group bg-slate-900/50">
@@ -998,56 +963,13 @@ Provide at least 5-8 results if possible. Return ONLY the JSON array.`;
                       onClick={identifyFish} disabled={identifying}
                       className="w-full mt-6 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 text-white font-bold text-lg py-4 px-6 rounded-xl transition-all shadow-lg hover:shadow-cyan-500/25 active:scale-[0.98] flex items-center justify-center gap-3"
                     >
-                      {identifying ? <><Loader2 className="w-6 h-6 animate-spin" /> Scanning...</> : <><Camera className="w-6 h-6" /> Identify Species</>}
+                      {identifying ? <><Loader2 className="w-6 h-6 animate-spin" /> Analyzing...</> : <><Camera className="w-6 h-6" /> Scan Fish (Species, Freshness & Quality)</>}
                     </button>
                   )}
 
                   {result && !result.error && (
-                    <div className="relative p-6 mt-6 overflow-hidden border bg-white/5 border-white/10 rounded-2xl">
-                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-400 to-blue-600"></div>
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-cyan-500/20"><Fish className="w-6 h-6 text-cyan-400" /></div>
-                          <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300">Analysis Result</h2>
-                        </div>
-                        <button onClick={clearImage} className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-white transition-colors">New Scan</button>
-                      </div>
-
-                      <div className="grid gap-4 mb-4 md:grid-cols-2">
-                        <div className="p-4 border bg-slate-900/40 rounded-xl border-white/5">
-                          <p className="mb-1 text-xs font-bold tracking-wider uppercase text-cyan-400">Common Name</p>
-                          <p className="text-xl font-bold text-white">{result.commonName}</p>
-                        </div>
-                        <div className="p-4 border bg-slate-900/40 rounded-xl border-white/5">
-                          <p className="mb-1 text-xs font-bold tracking-wider uppercase text-cyan-400">Scientific Name</p>
-                          <p className="text-lg italic text-slate-300">{result.scientificName}</p>
-                        </div>
-                      </div>
-
-                      {result.features && (
-                        <div className="p-5 mb-4 border bg-slate-900/40 rounded-xl border-white/5">
-                          <p className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-300"><Info className="w-4 h-4 text-cyan-400" /> Key Features</p>
-                          <ul className="space-y-2">
-                            {result.features.map((f, i) => (
-                              <li key={i} className="flex gap-2 text-sm text-slate-400">
-                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 mt-2 shrink-0"></span> {f}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {result.confidence && (
-                        <div className="p-4 border bg-slate-900/40 rounded-xl border-white/5">
-                          <div className="flex justify-between mb-2">
-                            <span className="text-sm text-slate-400">AI Confidence</span>
-                            <span className="text-sm font-bold text-cyan-400">{result.confidence}%</span>
-                          </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-slate-700">
-                            <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400" style={{ width: `${result.confidence}%` }}></div>
-                          </div>
-                        </div>
-                      )}
+                    <div className="mt-8">
+                      <FishAnalysisDashboard result={result} image={image} onNewScan={clearImage} />
                     </div>
                   )}
                   {result?.error && (
@@ -1079,10 +1001,10 @@ Provide at least 5-8 results if possible. Return ONLY the JSON array.`;
                               setImage(item.image);
                               setResult(item.result);
                             }}
-                            className="flex-shrink-0 w-24 transition-transform text-left group hover:scale-105"
+                            className="flex-shrink-0 w-24 text-left transition-transform group hover:scale-105"
                           >
                             <div className="relative w-24 h-24 mb-2 overflow-hidden border bg-slate-900 rounded-2xl border-white/5 group-hover:border-cyan-500/50">
-                              <img src={item.image} alt={item.result.commonName} className="object-cover w-full h-full opacity-60 group-hover:opacity-100 transition-opacity" />
+                              <img src={item.image} alt={item.result.commonName} className="object-cover w-full h-full transition-opacity opacity-60 group-hover:opacity-100" />
                               <div className="absolute inset-x-0 bottom-0 p-1 text-[8px] font-bold text-center text-white bg-gradient-to-t from-black/80 to-transparent">
                                 {new Date(item.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                               </div>
@@ -1109,7 +1031,7 @@ Provide at least 5-8 results if possible. Return ONLY the JSON array.`;
                   </div>
 
                   {/* Mode Toggle */}
-                  <div className="flex gap-2 p-1 mb-6 rounded-xl bg-slate-900/60 border border-white/10">
+                  <div className="flex gap-2 p-1 mb-6 border rounded-xl bg-slate-900/60 border-white/10">
                     <button
                       onClick={() => setShopMode('offline')}
                       className={`flex-1 py-3 px-4 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${shopMode === 'offline'
@@ -1209,7 +1131,7 @@ Provide at least 5-8 results if possible. Return ONLY the JSON array.`;
                               <p className="mt-2 text-sm text-slate-400">{platform.description}</p>
                               <div className="flex flex-wrap gap-2 mt-3">
                                 {platform.specialties.map((spec, j) => (
-                                  <span key={j} className="px-2 py-1 text-xs rounded bg-slate-800/50 text-slate-300 border border-white/5">
+                                  <span key={j} className="px-2 py-1 text-xs border rounded bg-slate-800/50 text-slate-300 border-white/5">
                                     {spec}
                                   </span>
                                 ))}
@@ -1244,14 +1166,14 @@ Provide at least 5-8 results if possible. Return ONLY the JSON array.`;
                         Status: {weatherData.status}
                       </div>
                     )}
-                    <h2 className="mb-2 text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-600 to-blue-700">Marine Dashboard</h2>
+                    <h2 className="mb-2 text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-700">Marine Dashboard</h2>
                     <p className="text-slate-500">Live monitoring & disaster alerts</p>
                   </div>
 
                   {!userLocation && !loadingLocation && (
                     <div className="py-12 text-center">
-                      <div className="p-6 mb-6 rounded-2xl bg-slate-100 border border-slate-200">
-                        <MapPin className="w-12 h-12 mx-auto mb-4 text-slate-400 opacity-50" />
+                      <div className="p-6 mb-6 border rounded-2xl bg-slate-100 border-slate-200">
+                        <MapPin className="w-12 h-12 mx-auto mb-4 opacity-50 text-slate-400" />
                         <h3 className="mb-2 text-lg font-bold text-slate-800">Location Required</h3>
                         <p className="text-sm text-slate-500">Enable location to get real-time marine weather for your area.</p>
                       </div>
@@ -1264,7 +1186,7 @@ Provide at least 5-8 results if possible. Return ONLY the JSON array.`;
                   {(loadingLocation || loadingWeather) && (
                     <div className="py-24 text-center">
                       <Loader2 className="w-12 h-12 mx-auto mb-4 text-cyan-500 animate-spin" />
-                      <p className="text-slate-500 font-medium animate-pulse">Gathering sea telemetry...</p>
+                      <p className="font-medium text-slate-500 animate-pulse">Gathering sea telemetry...</p>
                     </div>
                   )}
 
@@ -1291,17 +1213,17 @@ Provide at least 5-8 results if possible. Return ONLY the JSON array.`;
                       <div className="p-6 border bg-slate-50 rounded-2xl border-slate-200">
                         <div className="flex items-center gap-2 mb-4">
                           <Brain className="w-5 h-5 text-cyan-600" />
-                          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">AI Safety Analysis</h3>
+                          <h3 className="text-xs font-bold tracking-widest uppercase text-slate-500">AI Safety Analysis</h3>
                         </div>
                         <div className="relative">
-                          <div className="absolute -left-3 top-0 bottom-0 w-1 bg-cyan-500/20 rounded-full"></div>
-                          <p className="text-lg font-medium leading-relaxed text-slate-700 italic pl-4">"{weatherData.analysis}"</p>
+                          <div className="absolute top-0 bottom-0 w-1 rounded-full -left-3 bg-cyan-500/20"></div>
+                          <p className="pl-4 text-lg italic font-medium leading-relaxed text-slate-700">"{weatherData.analysis}"</p>
                         </div>
                       </div>
 
                       <button
                         onClick={() => fetchMarineWeather(userLocation.lat, userLocation.lng)}
-                        className="w-full mt-8 py-3 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-cyan-600 transition-colors flex items-center justify-center gap-2"
+                        className="flex items-center justify-center w-full gap-2 py-3 mt-8 text-xs font-bold tracking-widest uppercase transition-colors text-slate-400 hover:text-cyan-600"
                       >
                         <RefreshCw className="w-3 h-3" /> Force Update Telemetry
                       </button>
@@ -1315,23 +1237,23 @@ Provide at least 5-8 results if possible. Return ONLY the JSON array.`;
                   <div className="absolute top-0 left-0 w-full h-1 bg-red-600"></div>
 
                   <div className="mb-10 text-center">
-                    <h2 className="text-3xl font-black text-white mb-1 tracking-tighter">EMERGENCY</h2>
-                    <p className="text-red-500 font-bold text-sm tracking-widest uppercase mb-8">Marine Helpline 1554</p>
+                    <h2 className="mb-1 text-3xl font-black tracking-tighter text-white">EMERGENCY</h2>
+                    <p className="mb-8 text-sm font-bold tracking-widest text-red-500 uppercase">Marine Helpline 1554</p>
 
-                    <div className="relative group mx-auto w-48 h-48 mb-10">
-                      <div className="absolute inset-0 bg-red-600 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity animate-pulse"></div>
+                    <div className="relative w-48 h-48 mx-auto mb-10 group">
+                      <div className="absolute inset-0 transition-opacity bg-red-600 rounded-full blur-3xl opacity-20 group-hover:opacity-40 animate-pulse"></div>
                       <a
                         href="tel:1554"
-                        className="relative flex flex-col items-center justify-center w-48 h-48 bg-gradient-to-b from-red-500 to-red-700 rounded-full shadow-2xl shadow-red-900/50 border-8 border-red-400/30 hover:scale-105 active:scale-95 transition-all text-white no-underline overflow-hidden group"
+                        className="relative flex flex-col items-center justify-center w-48 h-48 overflow-hidden text-white no-underline transition-all border-8 rounded-full shadow-2xl bg-gradient-to-b from-red-500 to-red-700 shadow-red-900/50 border-red-400/30 hover:scale-105 active:scale-95 group"
                       >
-                        <span className="text-5xl font-black tracking-tighter mb-1">SOS</span>
+                        <span className="mb-1 text-5xl font-black tracking-tighter">SOS</span>
                         <span className="text-[10px] font-black bg-red-900/50 px-3 py-1 rounded-full border border-red-100/20">CALL NOW</span>
-                        <div className="absolute -inset-2 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                        <div className="absolute transition-transform duration-1000 -translate-x-full skew-x-12 -inset-2 bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:translate-x-full"></div>
                       </a>
                     </div>
                   </div>
 
-                  <div className="mb-8 p-6 bg-slate-900/80 border border-white/10 rounded-3xl shadow-inner">
+                  <div className="p-6 mb-8 border shadow-inner bg-slate-900/80 border-white/10 rounded-3xl">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="p-2 bg-red-500/20 rounded-xl"><MapPin className="w-5 h-5 text-red-400" /></div>
                       <div>
@@ -1339,10 +1261,10 @@ Provide at least 5-8 results if possible. Return ONLY the JSON array.`;
                         <h4 className="text-xs font-bold text-white uppercase">Current GPS Coordinates</h4>
                       </div>
                     </div>
-                    <div className="bg-black/40 p-4 rounded-xl border border-white/5 text-center">
-                      <div className="text-xl font-mono font-black text-cyan-400">
+                    <div className="p-4 text-center border bg-black/40 rounded-xl border-white/5">
+                      <div className="font-mono text-xl font-black text-cyan-400">
                         {userLocation ? `${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}` : (
-                          <button onClick={getUserLocation} className="text-sm text-slate-400 hover:text-white flex items-center justify-center gap-2 w-full">
+                          <button onClick={getUserLocation} className="flex items-center justify-center w-full gap-2 text-sm text-slate-400 hover:text-white">
                             <RefreshCw className="w-4 h-4 animate-spin-slow" /> Click to Locate
                           </button>
                         )}
@@ -1354,12 +1276,12 @@ Provide at least 5-8 results if possible. Return ONLY the JSON array.`;
                     <h3 className="text-center text-sm font-black text-slate-500 uppercase tracking-[0.2em]">Emergency Contacts</h3>
                     <div className="grid gap-4">
                       {coastGuardDepartments.slice(0, 2).map((dept, i) => (
-                        <div key={i} className="flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-colors">
+                        <div key={i} className="flex items-center justify-between p-4 transition-colors border bg-white/5 border-white/5 rounded-2xl hover:bg-white/10">
                           <div>
-                            <p className="text-xs font-bold text-white mb-1">{dept.name}</p>
+                            <p className="mb-1 text-xs font-bold text-white">{dept.name}</p>
                             <p className="text-[10px] text-slate-400 font-medium">{dept.telephone}</p>
                           </div>
-                          <a href={`tel:${dept.telephone}`} className="p-3 bg-slate-800 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition-all">
+                          <a href={`tel:${dept.telephone}`} className="p-3 transition-all bg-slate-800 rounded-xl hover:bg-red-500/20 hover:text-red-400">
                             <Phone className="w-4 h-4" />
                           </a>
                         </div>
@@ -1374,7 +1296,7 @@ Provide at least 5-8 results if possible. Return ONLY the JSON array.`;
                   {!selectedFish ? (
                     <>
                       <div className="mb-8 text-center">
-                        <h2 className="mb-2 text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">Species Guide</h2>
+                        <h2 className="mb-2 text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Species Guide</h2>
                         <p className="text-sm text-slate-500">Explore and learn about local marine life</p>
                       </div>
 
@@ -1421,7 +1343,7 @@ Provide at least 5-8 results if possible. Return ONLY the JSON array.`;
                             </button>
                           ))
                         ) : (
-                          <div className="col-span-full py-12 text-center text-slate-400">
+                          <div className="py-12 text-center col-span-full text-slate-400">
                             <Info className="w-12 h-12 mx-auto mb-3 opacity-20" />
                             <p>No species found matching your search.</p>
                           </div>
